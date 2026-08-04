@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>✨ 語句修飾機器人 Sentence Polisher</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ea2027">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="潤飾機器人">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<meta name="description" content="中英文語句修飾機器人 / Bilingual Chinese-English sentence polishing bot">
 <style>
     :root {
         --accent: #ea2027;
@@ -86,6 +95,8 @@
     <header>
         <h1>✨ 語句修飾機器人</h1>
         <p>Sentence Polishing Bot · 支援中文與英文 / Supports Chinese &amp; English</p>
+        <button class="btn" id="installBtn" style="display:none; max-width:260px; margin:14px auto 0;">📲 安裝為手機 App / Install App</button>
+        <p class="hint" id="iosHint" style="display:none;">📱 iOS 用戶：點 Safari 分享鈕 → 「加入主畫面」即可安裝<br>iOS: tap Share → "Add to Home Screen"</p>
     </header>
 
     <div class="card">
@@ -236,6 +247,38 @@ copyBtn.addEventListener('click', async () => {
     await navigator.clipboard.writeText(outputEl.textContent);
     copyBtn.textContent = '✅ 已複製 Copied';
     setTimeout(() => copyBtn.textContent = '📋 複製結果 Copy', 1500);
+});
+
+(function showIosHintIfNeeded() {
+    const isIos = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    if (isIos && !isStandalone) {
+        $('iosHint').style.display = 'block';
+    }
+})();
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js').catch(() => {});
+    });
+}
+
+let deferredInstallPrompt = null;
+const installBtn = $('installBtn');
+window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    installBtn.style.display = 'inline-block';
+});
+installBtn.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    installBtn.style.display = 'none';
+});
+window.addEventListener('appinstalled', () => {
+    installBtn.style.display = 'none';
 });
 </script>
 </body>
