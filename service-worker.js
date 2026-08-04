@@ -1,4 +1,4 @@
-const CACHE_NAME = 'polish-bot-v1';
+const CACHE_NAME = 'polish-bot-v2';
 const ASSETS = [
     './polish-bot.html',
     './manifest.json',
@@ -26,6 +26,20 @@ self.addEventListener('fetch', event => {
     const url = new URL(event.request.url);
 
     if (url.origin === 'https://api.anthropic.com') {
+        return;
+    }
+
+    // Network-first for the HTML document so redeploys show up immediately;
+    // cache is only used as an offline fallback.
+    const isDocument = event.request.mode === 'navigate' || url.pathname.endsWith('.html');
+    if (isDocument) {
+        event.respondWith(
+            fetch(event.request).then(response => {
+                const copy = response.clone();
+                caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+                return response;
+            }).catch(() => caches.match(event.request))
+        );
         return;
     }
 
