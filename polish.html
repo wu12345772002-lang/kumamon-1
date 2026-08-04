@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>✨ 語句修飾機器人 / Sentence Polisher</title>
+<style>
+    :root {
+        --accent: #ea2027;
+        --accent2: #48dbfb;
+        --bg: #fffdf5;
+        --card: #ffffff;
+        --text: #333;
+        --muted: #888;
+        --border: #eee;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+        font-family: "PingFang TC", "Microsoft JhengHei", -apple-system, sans-serif;
+        background: var(--bg);
+        margin: 0; padding: 20px; padding-bottom: 60px;
+        color: var(--text); line-height: 1.6;
+    }
+    .wrap { max-width: 640px; margin: 0 auto; }
+    header { text-align: center; margin-bottom: 20px; }
+    header h1 { font-size: 1.5rem; margin: 0 0 6px; }
+    header p { color: var(--muted); font-size: 0.9rem; margin: 0; }
+
+    .card {
+        background: var(--card); border-radius: 20px; padding: 20px;
+        margin-bottom: 20px; box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+        border: 1px solid var(--border);
+    }
+
+    label { font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 8px; }
+
+    textarea {
+        width: 100%; min-height: 120px; padding: 12px; border-radius: 14px;
+        border: 2px solid var(--border); font-size: 1rem; font-family: inherit;
+        resize: vertical; outline: none; transition: border-color .15s;
+    }
+    textarea:focus { border-color: var(--accent2); }
+
+    .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
+    select, input[type="password"] {
+        padding: 8px 10px; border-radius: 10px; border: 2px solid var(--border);
+        font-size: 0.9rem; font-family: inherit; background: white;
+    }
+    .row label.inline { margin: 0; font-weight: normal; font-size: 0.85rem; color: var(--muted); }
+
+    button.primary {
+        margin-top: 16px; width: 100%; padding: 13px 0; border: none; border-radius: 16px;
+        background: var(--accent); color: white; font-weight: bold; font-size: 1.05rem;
+        cursor: pointer; box-shadow: 0 5px 0 rgba(0,0,0,0.15); transition: transform .1s;
+    }
+    button.primary:active { transform: translateY(4px); box-shadow: none; }
+    button.primary:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; }
+
+    .result-box { position: relative; }
+    .result-text {
+        white-space: pre-wrap; background: #fafafa; border-radius: 14px; padding: 14px;
+        border: 1px solid var(--border); min-height: 60px; font-size: 1rem;
+    }
+    .result-text.empty { color: var(--muted); }
+    .copy-btn {
+        position: absolute; top: 10px; right: 10px; background: white;
+        border: 2px solid var(--accent2); color: #0891b2; border-radius: 12px;
+        padding: 4px 10px; font-size: 0.8rem; font-weight: bold; cursor: pointer;
+    }
+
+    .settings summary { cursor: pointer; font-weight: bold; font-size: 0.9rem; color: var(--muted); }
+    .settings[open] summary { margin-bottom: 12px; }
+    .hint { font-size: 0.8rem; color: var(--muted); margin-top: 6px; }
+    a { color: #0891b2; }
+    .error { color: var(--accent); font-size: 0.9rem; margin-top: 10px; display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+    <header>
+        <h1>✨ 語句修飾機器人</h1>
+        <p>Sentence Polisher — 中文 / English</p>
+    </header>
+
+    <div class="card">
+        <label for="input-text">原始句子 / Original text</label>
+        <textarea id="input-text" placeholder="貼上你想修飾的中文或英文句子...&#10;Paste the sentence you want polished (Chinese or English)."></textarea>
+
+        <div class="row">
+            <div>
+                <label class="inline" for="tone">語氣 / Tone</label>
+                <select id="tone">
+                    <option value="natural">自然順暢 Natural</option>
+                    <option value="formal">正式 Formal</option>
+                    <option value="casual">口語 Casual</option>
+                    <option value="professional">專業商務 Professional</option>
+                    <option value="concise">精簡 Concise</option>
+                </select>
+            </div>
+            <div>
+                <label class="inline" for="lang-out">輸出語言 / Output language</label>
+                <select id="lang-out">
+                    <option value="auto">自動（同原文）Auto</option>
+                    <option value="zh">中文</option>
+                    <option value="en">English</option>
+                </select>
+            </div>
+        </div>
+
+        <button class="primary" id="polish-btn">修飾 Polish</button>
+        <div class="error" id="error-box"></div>
+
+        <details class="settings" style="margin-top:16px;">
+            <summary>⚙️ API 設定 / API settings</summary>
+            <label class="inline" for="api-key">Anthropic API Key（僅存於瀏覽器本機 localStorage）</label>
+            <input type="password" id="api-key" placeholder="sk-ant-..." style="width:100%; margin-top:6px;">
+            <p class="hint">你的 API key 只會儲存在這台裝置的瀏覽器中，不會上傳到任何伺服器。可至
+                <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a> 取得。
+                Your key stays in this browser's local storage only.</p>
+        </details>
+    </div>
+
+    <div class="card">
+        <label>修飾結果 / Polished result</label>
+        <div class="result-box">
+            <div class="result-text empty" id="result-text">結果會顯示在這裡... Result will appear here...</div>
+            <button class="copy-btn" id="copy-btn" style="display:none;">複製 Copy</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const inputText = document.getElementById('input-text');
+const tone = document.getElementById('tone');
+const langOut = document.getElementById('lang-out');
+const polishBtn = document.getElementById('polish-btn');
+const errorBox = document.getElementById('error-box');
+const resultText = document.getElementById('result-text');
+const copyBtn = document.getElementById('copy-btn');
+const apiKeyInput = document.getElementById('api-key');
+
+const STORAGE_KEY = 'polish-bot-api-key';
+apiKeyInput.value = localStorage.getItem(STORAGE_KEY) || '';
+apiKeyInput.addEventListener('input', () => {
+    localStorage.setItem(STORAGE_KEY, apiKeyInput.value.trim());
+});
+
+const TONE_LABELS = {
+    natural: '自然順暢、保留原意',
+    formal: '正式、書面語',
+    casual: '輕鬆口語',
+    professional: '專業商務語氣',
+    concise: '精簡扼要'
+};
+
+function showError(msg) {
+    errorBox.textContent = msg;
+    errorBox.style.display = msg ? 'block' : 'none';
+}
+
+function buildPrompt(text, toneKey, outLang) {
+    const toneDesc = TONE_LABELS[toneKey] || TONE_LABELS.natural;
+    let langInstruction;
+    if (outLang === 'zh') {
+        langInstruction = '請以中文輸出修飾後的句子。';
+    } else if (outLang === 'en') {
+        langInstruction = 'Please output the polished sentence in English.';
+    } else {
+        langInstruction = '請使用與原文相同的語言（中文或英文）輸出修飾後的句子。若原文中英夾雜，請維持中英夾雜但更通順自然。';
+    }
+    return `你是一個專業的中英文語句修飾助手。請將使用者提供的句子修飾得更通順、更道地，語氣為「${toneDesc}」，並保留原意，不要增加原文沒有的資訊。${langInstruction}
+只輸出修飾後的句子本身，不要加任何說明、引號或前綴。
+
+原始句子：
+${text}`;
+}
+
+async function polish() {
+    const text = inputText.value.trim();
+    showError('');
+    if (!text) {
+        showError('請先輸入句子 / Please enter a sentence first.');
+        return;
+    }
+    const apiKey = apiKeyInput.value.trim();
+    if (!apiKey) {
+        showError('請先在下方「API 設定」輸入 Anthropic API Key。/ Please enter your Anthropic API key below.');
+        return;
+    }
+
+    polishBtn.disabled = true;
+    polishBtn.textContent = '修飾中... Polishing...';
+    resultText.textContent = '';
+    resultText.classList.add('empty');
+    copyBtn.style.display = 'none';
+
+    try {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': apiKey,
+                'anthropic-version': '2023-06-01',
+                'anthropic-dangerous-direct-browser-access': 'true'
+            },
+            body: JSON.stringify({
+                model: 'claude-sonnet-4-5-20250929',
+                max_tokens: 1024,
+                messages: [
+                    { role: 'user', content: buildPrompt(text, tone.value, langOut.value) }
+                ]
+            })
+        });
+
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData?.error?.message || `HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        const polished = (data.content || []).map(b => b.text || '').join('').trim();
+
+        resultText.textContent = polished || '（沒有取得結果 / No result）';
+        resultText.classList.remove('empty');
+        copyBtn.style.display = polished ? 'inline-block' : 'none';
+    } catch (err) {
+        showError('修飾失敗 / Failed: ' + err.message);
+    } finally {
+        polishBtn.disabled = false;
+        polishBtn.textContent = '修飾 Polish';
+    }
+}
+
+polishBtn.addEventListener('click', polish);
+
+copyBtn.addEventListener('click', async () => {
+    try {
+        await navigator.clipboard.writeText(resultText.textContent);
+        copyBtn.textContent = '已複製 ✓';
+        setTimeout(() => { copyBtn.textContent = '複製 Copy'; }, 1500);
+    } catch (e) {
+        showError('複製失敗 / Copy failed.');
+    }
+});
+
+inputText.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        polish();
+    }
+});
+</script>
+</body>
+</html>
