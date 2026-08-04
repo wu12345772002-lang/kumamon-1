@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>✨ 語句修飾機器人 Sentence Polisher</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ea2027">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="潤飾機器人">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<meta name="description" content="中英文語句修飾機器人 / Bilingual Chinese-English sentence polishing bot">
+<style>
+    :root {
+        --accent: #ea2027;
+        --accent-2: #48dbfb;
+        --bg: #fffdf5;
+        --card: #ffffff;
+        --ink: #333;
+        --muted: #888;
+        --border: #eee;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+        margin: 0; padding: 20px; padding-bottom: 60px;
+        font-family: "PingFang TC", "Microsoft JhengHei", -apple-system, sans-serif;
+        background: var(--bg); color: var(--ink); line-height: 1.6;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; }
+    header { text-align: center; margin-bottom: 20px; }
+    header h1 { margin: 0; font-size: 1.6rem; }
+    header p { margin: 6px 0 0; color: var(--muted); font-size: 0.9rem; }
+
+    .card {
+        background: var(--card); border-radius: 20px; padding: 20px;
+        margin-bottom: 18px; box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+        border: 1px solid var(--border);
+    }
+    label { display: block; font-weight: bold; margin-bottom: 8px; font-size: 0.95rem; }
+    textarea {
+        width: 100%; min-height: 140px; padding: 12px; border-radius: 14px;
+        border: 2px solid var(--border); font-size: 1rem; font-family: inherit;
+        resize: vertical; outline: none; transition: border-color .15s;
+    }
+    textarea:focus { border-color: var(--accent-2); }
+
+    .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    select, input[type=password] {
+        flex: 1; min-width: 140px; padding: 10px 12px; border-radius: 12px;
+        border: 2px solid var(--border); font-size: 0.95rem; font-family: inherit;
+        background: white;
+    }
+
+    .btn {
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        width: 100%; padding: 14px 0; margin-top: 14px;
+        background: var(--accent); color: white; font-weight: bold; font-size: 1.05rem;
+        border: none; border-radius: 16px; cursor: pointer;
+        box-shadow: 0 5px 0 rgba(0,0,0,0.15); transition: transform .1s;
+    }
+    .btn:active { transform: translateY(4px); box-shadow: none; }
+    .btn:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; }
+
+    .output {
+        white-space: pre-wrap; word-break: break-word;
+        background: #FAFAFA; border-radius: 14px; padding: 14px;
+        min-height: 60px; font-size: 1rem; border: 1px solid var(--border);
+    }
+    .output.empty { color: var(--muted); }
+
+    .copy-btn {
+        margin-top: 10px; background: white; border: 2px solid var(--accent-2);
+        color: #0984e3; padding: 8px 16px; border-radius: 20px; font-size: 0.85rem;
+        font-weight: bold; cursor: pointer;
+    }
+
+    .hint { font-size: 0.8rem; color: var(--muted); margin-top: 6px; }
+    .error { color: var(--accent); font-size: 0.9rem; margin-top: 10px; }
+    .settings summary { cursor: pointer; font-weight: bold; font-size: 0.9rem; color: var(--muted); }
+    .settings[open] summary { margin-bottom: 10px; }
+
+    .spinner {
+        width: 16px; height: 16px; border: 3px solid rgba(255,255,255,0.4);
+        border-top-color: white; border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+    <header>
+        <h1>✨ 語句修飾機器人</h1>
+        <p>Sentence Polishing Bot · 支援中文與英文 / Supports Chinese &amp; English</p>
+        <button class="btn" id="installBtn" style="display:none; max-width:260px; margin:14px auto 0;">📲 安裝為手機 App / Install App</button>
+        <p class="hint" id="iosHint" style="display:none;">📱 iOS 用戶：點 Safari 分享鈕 → 「加入主畫面」即可安裝<br>iOS: tap Share → "Add to Home Screen"</p>
+    </header>
+
+    <div class="card">
+        <label for="input">貼上你想修飾的句子 / Paste the text you want polished</label>
+        <textarea id="input" placeholder="例如：我覺得這個方案應該可以，但是還有一些地方需要在改進一下。&#10;e.g. i think this plan is good but it need some more improvement."></textarea>
+
+        <div class="row">
+            <select id="style">
+                <option value="natural">自然通順 Natural</option>
+                <option value="formal">正式 Formal</option>
+                <option value="casual">口語 Casual</option>
+                <option value="concise">精簡 Concise</option>
+                <option value="professional">專業商務 Professional</option>
+            </select>
+            <select id="lang">
+                <option value="auto">自動偵測語言 Auto-detect</option>
+                <option value="zh">輸出中文 Output Chinese</option>
+                <option value="en">輸出英文 Output English</option>
+            </select>
+        </div>
+
+        <button class="btn" id="polishBtn">
+            <span id="btnLabel">修飾句子 Polish</span>
+        </button>
+
+        <details class="settings">
+            <summary>⚙️ API 金鑰設定 / API Key Settings</summary>
+            <div class="row" style="margin-top:10px;">
+                <input type="password" id="apiKey" placeholder="貼上你的 Anthropic API Key (sk-ant-...)">
+            </div>
+            <p class="hint">
+                金鑰只會儲存在你自己瀏覽器的 localStorage，不會上傳到任何伺服器。
+                需要金鑰請至 <span style="text-decoration:underline;">console.anthropic.com</span> 申請。<br>
+                Your key is stored only in your browser's localStorage and never sent anywhere except Anthropic's API.
+            </p>
+        </details>
+
+        <div class="error" id="errorBox" style="display:none;"></div>
+    </div>
+
+    <div class="card">
+        <label>修飾結果 / Polished Result</label>
+        <div class="output empty" id="output">結果會顯示在這裡 / Result will appear here</div>
+        <button class="copy-btn" id="copyBtn" style="display:none;">📋 複製結果 Copy</button>
+    </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const inputEl = $('input'), styleEl = $('style'), langEl = $('lang');
+const apiKeyEl = $('apiKey'), polishBtn = $('polishBtn'), btnLabel = $('btnLabel');
+const outputEl = $('output'), copyBtn = $('copyBtn'), errorBox = $('errorBox');
+
+apiKeyEl.value = localStorage.getItem('polish_api_key') || '';
+apiKeyEl.addEventListener('change', () => {
+    localStorage.setItem('polish_api_key', apiKeyEl.value.trim());
+});
+
+const styleLabels = {
+    natural: '自然通順、保留原意',
+    formal: '正式、書面語',
+    casual: '輕鬆口語',
+    concise: '精簡扼要，去除贅字',
+    professional: '專業商務語氣'
+};
+
+function buildSystemPrompt(style, lang) {
+    let langInstruction;
+    if (lang === 'zh') langInstruction = '無論輸入是什麼語言，都用中文輸出修飾後的句子。';
+    else if (lang === 'en') langInstruction = 'Regardless of the input language, output the polished sentence in English.';
+    else langInstruction = '偵測輸入文字使用的語言（中文或英文），並用同一種語言輸出修飾後的句子。If the input is English, respond in English; if Chinese, respond in Chinese.';
+
+    return `你是一個專業的中英文語句修飾助手。使用者會提供一段文字，你需要在保留原意的前提下，修飾文法、用詞與語氣，讓句子更通順、道地。
+風格要求：${styleLabels[style]}。
+語言規則：${langInstruction}
+只輸出修飾後的句子本身，不要加上任何說明、引號或前綴（例如不要寫「修飾後：」）。如果原文本身已經沒有問題，就原樣或做最小幅度調整後輸出。`;
+}
+
+async function polish() {
+    const text = inputEl.value.trim();
+    const apiKey = apiKeyEl.value.trim();
+    errorBox.style.display = 'none';
+
+    if (!text) {
+        showError('請先輸入要修飾的句子 / Please enter some text first.');
+        return;
+    }
+    if (!apiKey) {
+        showError('請先在下方「API 金鑰設定」貼上你的 Anthropic API Key / Please provide an Anthropic API key below.');
+        return;
+    }
+
+    setLoading(true);
+    try {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': apiKey,
+                'anthropic-version': '2023-06-01',
+                'anthropic-dangerous-direct-browser-access': 'true'
+            },
+            body: JSON.stringify({
+                model: 'claude-sonnet-5',
+                max_tokens: 1024,
+                system: buildSystemPrompt(styleEl.value, langEl.value),
+                messages: [{ role: 'user', content: text }]
+            })
+        });
+
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData?.error?.message || `API 錯誤 (HTTP ${res.status})`);
+        }
+
+        const data = await res.json();
+        const result = (data.content || []).map(b => b.text || '').join('').trim();
+        showResult(result || '（沒有回傳內容 / No content returned）');
+    } catch (err) {
+        showError('發生錯誤 / Error: ' + err.message);
+    } finally {
+        setLoading(false);
+    }
+}
+
+function showResult(text) {
+    outputEl.textContent = text;
+    outputEl.classList.remove('empty');
+    copyBtn.style.display = 'inline-block';
+}
+
+function showError(msg) {
+    errorBox.textContent = msg;
+    errorBox.style.display = 'block';
+}
+
+function setLoading(loading) {
+    polishBtn.disabled = loading;
+    btnLabel.textContent = loading ? '修飾中... Polishing...' : '修飾句子 Polish';
+}
+
+polishBtn.addEventListener('click', polish);
+inputEl.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') polish();
+});
+
+copyBtn.addEventListener('click', async () => {
+    await navigator.clipboard.writeText(outputEl.textContent);
+    copyBtn.textContent = '✅ 已複製 Copied';
+    setTimeout(() => copyBtn.textContent = '📋 複製結果 Copy', 1500);
+});
+
+(function showIosHintIfNeeded() {
+    const isIos = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    if (isIos && !isStandalone) {
+        $('iosHint').style.display = 'block';
+    }
+})();
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js').catch(() => {});
+    });
+}
+
+let deferredInstallPrompt = null;
+const installBtn = $('installBtn');
+window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    installBtn.style.display = 'inline-block';
+});
+installBtn.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    installBtn.style.display = 'none';
+});
+window.addEventListener('appinstalled', () => {
+    installBtn.style.display = 'none';
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "name": "語句修飾機器人 Sentence Polisher",
+  "short_name": "潤飾機器人",
+  "description": "中英文語句修飾機器人 / Bilingual Chinese-English sentence polishing bot",
+  "start_url": "./polish-bot.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fffdf5",
+  "theme_color": "#ea2027",
+  "orientation": "portrait",
+  "lang": "zh-TW",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
